@@ -115,14 +115,23 @@ CREATE TABLE IF NOT EXISTS damage_events (
   timestamp BIGINT
 );
 
--- Supabase에서 기본적으로 보안(RLS)을 걸어두어 플러그인이 데이터를 넣지 못하는 에러를 방지하기 위해 RLS를 해제합니다.
-ALTER TABLE server_metrics DISABLE ROW LEVEL SECURITY;
-ALTER TABLE player_movement DISABLE ROW LEVEL SECURITY;
-ALTER TABLE block_events DISABLE ROW LEVEL SECURITY;
-ALTER TABLE death_events DISABLE ROW LEVEL SECURITY;
-ALTER TABLE redstone_events DISABLE ROW LEVEL SECURITY;
-ALTER TABLE interaction_events DISABLE ROW LEVEL SECURITY;
-ALTER TABLE damage_events DISABLE ROW LEVEL SECURITY;
+-- Supabase Linter 에러(RLS Disabled)를 해결하고 안전하게 데이터를 통신하기 위한 권한(Policy) 설정입니다.
+ALTER TABLE server_metrics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE player_movement ENABLE ROW LEVEL SECURITY;
+ALTER TABLE block_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE death_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE redstone_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE interaction_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE damage_events ENABLE ROW LEVEL SECURITY;
+
+-- 플러그인(anon 키)이 데이터를 넣고(INSERT), 대시보드가 읽을(SELECT) 수 있도록 허용합니다.
+CREATE POLICY "Allow public all" ON server_metrics FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all" ON player_movement FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all" ON block_events FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all" ON death_events FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all" ON redstone_events FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all" ON interaction_events FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public all" ON damage_events FOR ALL USING (true) WITH CHECK (true);
 ```
 
 ## 🛠️ 플러그인 빌드 방법
