@@ -8,12 +8,10 @@ import org.bukkit.command.CommandSender;
 public class CommandManager implements CommandExecutor {
     private final DataCollector dataCollector;
     private final DatabaseManager dbManager;
-    private final WebServerManager webServerManager;
 
-    public CommandManager(DataCollector dataCollector, DatabaseManager dbManager, WebServerManager webServerManager) {
+    public CommandManager(DataCollector dataCollector, DatabaseManager dbManager) {
         this.dataCollector = dataCollector;
         this.dbManager = dbManager;
-        this.webServerManager = webServerManager;
     }
 
     @Override
@@ -32,8 +30,7 @@ public class CommandManager implements CommandExecutor {
 
         if (args[0].equalsIgnoreCase("status")) {
             sender.sendMessage(ChatColor.DARK_AQUA + "=== ML Data Collector Status ===");
-            sender.sendMessage(ChatColor.WHITE + "로컬 DB (SQLite): " + ChatColor.GREEN + "안전하게 기록 중");
-            sender.sendMessage(ChatColor.WHITE + "내장 웹 서버: " + ChatColor.GREEN + "포트 개방 및 Basic Auth 작동 중");
+            sender.sendMessage(ChatColor.WHITE + "데이터 연동: " + ChatColor.GREEN + "작동 중");
             sender.sendMessage(ChatColor.GRAY + "모든 데이터는 비동기로 렉 없이 처리되고 있습니다.");
             return true;
         }
