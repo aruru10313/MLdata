@@ -71,47 +71,53 @@ public class DatabaseManager {
 
     public void insertMetricsAsync(List<Map<String, Object>> metrics) {
         if (metrics.isEmpty()) return;
-        CompletableFuture.runAsync(() -> {
-            if (type.equals("sqlite")) {
-                String sql = "INSERT INTO server_metrics (tps, ram_used_mb, ram_max_mb, loaded_chunks, entity_count, online_players, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)";
-                try (Connection conn = getSQLiteConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                    conn.setAutoCommit(false);
-                    for (Map<String, Object> data : metrics) {
-                        pstmt.setDouble(1, (Double) data.get("tps"));
-                        pstmt.setLong(2, (Long) data.get("ram_used_mb"));
-                        pstmt.setLong(3, (Long) data.get("ram_max_mb"));
-                        pstmt.setInt(4, (Integer) data.get("loaded_chunks"));
-                        pstmt.setInt(5, (Integer) data.get("entity_count"));
-                        pstmt.setInt(6, (Integer) data.get("online_players"));
-                        pstmt.setLong(7, (Long) data.get("timestamp"));
-                        pstmt.addBatch();
-                    }
-                    pstmt.executeBatch();
-                    conn.commit();
-                } catch (SQLException e) { logger.severe("Failed to insert metrics (SQLite): " + e.getMessage()); }
-            } else {
-                sendToSupabase("server_metrics", metrics);
-            }
-        });
+        CompletableFuture.runAsync(() -> insertMetricsSync(metrics));
+    }
+
+    public void insertMetricsSync(List<Map<String, Object>> metrics) {
+        if (metrics.isEmpty()) return;
+        if (type.equals("sqlite")) {
+            String sql = "INSERT INTO server_metrics (tps, ram_used_mb, ram_max_mb, loaded_chunks, entity_count, online_players, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            try (Connection conn = getSQLiteConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                conn.setAutoCommit(false);
+                for (Map<String, Object> data : metrics) {
+                    pstmt.setDouble(1, (Double) data.get("tps"));
+                    pstmt.setLong(2, (Long) data.get("ram_used_mb"));
+                    pstmt.setLong(3, (Long) data.get("ram_max_mb"));
+                    pstmt.setInt(4, (Integer) data.get("loaded_chunks"));
+                    pstmt.setInt(5, (Integer) data.get("entity_count"));
+                    pstmt.setInt(6, (Integer) data.get("online_players"));
+                    pstmt.setLong(7, (Long) data.get("timestamp"));
+                    pstmt.addBatch();
+                }
+                pstmt.executeBatch();
+                conn.commit();
+            } catch (SQLException e) { logger.severe("Failed to insert metrics (SQLite): " + e.getMessage()); }
+        } else {
+            sendToSupabase("server_metrics", metrics);
+        }
     }
 
     public void insertEventsAsync(String tableName, String sqliteSql, List<Map<String, Object>> events, SqlPstmtSetter setter) {
         if (events.isEmpty()) return;
-        CompletableFuture.runAsync(() -> {
-            if (type.equals("sqlite")) {
-                try (Connection conn = getSQLiteConnection(); PreparedStatement pstmt = conn.prepareStatement(sqliteSql)) {
-                    conn.setAutoCommit(false);
-                    for (Map<String, Object> data : events) {
-                        setter.setValues(pstmt, data);
-                        pstmt.addBatch();
-                    }
-                    pstmt.executeBatch();
-                    conn.commit();
-                } catch (SQLException e) { logger.severe("Failed to insert " + tableName + " (SQLite): " + e.getMessage()); }
-            } else {
-                sendToSupabase(tableName, events);
-            }
-        });
+        CompletableFuture.runAsync(() -> insertEventsSync(tableName, sqliteSql, events, setter));
+    }
+
+    public void insertEventsSync(String tableName, String sqliteSql, List<Map<String, Object>> events, SqlPstmtSetter setter) {
+        if (events.isEmpty()) return;
+        if (type.equals("sqlite")) {
+            try (Connection conn = getSQLiteConnection(); PreparedStatement pstmt = conn.prepareStatement(sqliteSql)) {
+                conn.setAutoCommit(false);
+                for (Map<String, Object> data : events) {
+                    setter.setValues(pstmt, data);
+                    pstmt.addBatch();
+                }
+                pstmt.executeBatch();
+                conn.commit();
+            } catch (SQLException e) { logger.severe("Failed to insert " + tableName + " (SQLite): " + e.getMessage()); }
+        } else {
+            sendToSupabase(tableName, events);
+        }
     }
 
     private void sendToSupabase(String table, List<Map<String, Object>> payload) {
@@ -120,6 +126,8 @@ public class DatabaseManager {
             URL urlObj = new URL(supabaseUrl + "/rest/v1/" + table);
             HttpURLConnection conn = (HttpURLConnection) urlObj.openConnection();
             conn.setRequestMethod("POST");
+            conn.setConnectTimeout(5000); // 5 seconds timeout
+            conn.setReadTimeout(10000);   // 10 seconds timeout
             conn.setRequestProperty("apikey", supabaseKey);
             conn.setRequestProperty("Authorization", "Bearer " + supabaseKey);
             conn.setRequestProperty("Content-Type", "application/json");

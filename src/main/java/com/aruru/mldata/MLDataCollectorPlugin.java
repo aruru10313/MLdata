@@ -29,9 +29,10 @@ public class MLDataCollectorPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        getLogger().info("서버가 종료됩니다. 남은 데이터를 데이터베이스에 안전하게 저장합니다...");
         if (dataCollector != null) {
             dataCollector.flushAll(); 
         }
-        getLogger().info("MLDataCollector has been disabled.");
+        getLogger().info("모든 데이터가 성공적으로 저장되었습니다. MLDataCollector has been disabled.");
     }
 }
