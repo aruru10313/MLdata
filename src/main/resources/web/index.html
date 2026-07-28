@@ -137,8 +137,11 @@
             <div class="nav-item" onclick="switchTab('blocks', this)">Block Logs</div>
             <div class="nav-item" onclick="switchTab('damage', this)">Damage Logs</div>
             <div class="nav-item" onclick="switchTab('interactions', this)">Interactions</div>
+            <div class="nav-item" onclick="switchTab('items', this)">Item & Hopper Logs</div>
+            <div class="nav-item" onclick="switchTab('chat', this)">Chat & Commands</div>
             <div class="nav-item" onclick="switchTab('deaths', this)">Death Logs</div>
             <div class="nav-item" onclick="switchTab('redstone', this)">Redstone</div>
+            <div class="nav-item" onclick="switchTab('sessions', this)">Sessions</div>
         </div>
 
         <div class="content">
@@ -156,6 +159,7 @@
                 </div>
                 <div class="chart-wrapper"><h2 class="chart-title">Ticks Per Second (TPS)</h2><canvas id="tpsChart" height="70"></canvas></div>
                 <div class="chart-wrapper"><h2 class="chart-title">Memory Usage (MB)</h2><canvas id="ramChart" height="70"></canvas></div>
+                <div class="chart-wrapper"><h2 class="chart-title">Player Movement Map (Top-Down View)</h2><canvas id="movementChart" height="150"></canvas></div>
             </div>
 
             <!-- Block Logs View -->
@@ -204,6 +208,36 @@
                     <table>
                         <thead><tr><th>Time</th><th>Block</th><th>Old Power</th><th>New Power</th><th>Location</th></tr></thead>
                         <tbody id="redstone-tbody"><tr><td colspan="5" style="text-align:center; color: var(--text-muted);">Loading data...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Items View -->
+            <div id="view-items" class="view-section">
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Time</th><th>Player/Source</th><th>Action</th><th>Item</th><th>Amount</th><th>Location</th></tr></thead>
+                        <tbody id="items-tbody"><tr><td colspan="6" style="text-align:center; color: var(--text-muted);">Loading data...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Chat View -->
+            <div id="view-chat" class="view-section">
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Time</th><th>Player</th><th>Type</th><th>Message / Command</th><th>Location</th></tr></thead>
+                        <tbody id="chat-tbody"><tr><td colspan="5" style="text-align:center; color: var(--text-muted);">Loading data...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Sessions View -->
+            <div id="view-sessions" class="view-section">
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Time</th><th>Player</th><th>Action</th><th>IP Address</th></tr></thead>
+                        <tbody id="sessions-tbody"><tr><td colspan="4" style="text-align:center; color: var(--text-muted);">Loading data...</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -262,7 +296,7 @@
             document.querySelectorAll('.view-section').forEach(e => e.classList.remove('active'));
             document.getElementById('view-' + tabId).classList.add('active');
             
-            const titles = { 'overview': 'Overview', 'blocks': 'Detailed Block Logs', 'deaths': 'Server Casualties', 'damage': 'Combat & Damage Logs', 'interactions': 'Entity Interactions', 'redstone': 'Redstone Activity' };
+            const titles = { 'overview': 'Overview', 'blocks': 'Detailed Block Logs', 'deaths': 'Server Casualties', 'damage': 'Combat & Damage Logs', 'interactions': 'Entity Interactions', 'redstone': 'Redstone Activity', 'items': 'Item & Hopper Logs', 'chat': 'Chat & Commands', 'sessions': 'Player Sessions' };
             document.getElementById('page-title').innerText = titles[tabId];
             refreshData();
         }
@@ -286,6 +320,9 @@
                 apiGet('/api/metrics').then(data => {
                     updateCharts(data);
                 });
+                apiGet('/api/events/movement').then(data => {
+                    updateMovementChart(data);
+                });
             } else if (activeTab === 'view-blocks') {
                 apiGet('/api/events/blocks').then(data => {
                     const tbody = document.getElementById('blocks-tbody');
@@ -298,7 +335,7 @@
                         const time = new Date(d.timestamp).toLocaleTimeString();
                         const actionClass = d.action.toLowerCase() === 'break' ? 'break' : 'place';
                         const loc = `${d.world} (${d.x}, ${d.y}, ${d.z})`;
-                        tbody.innerHTML += `<tr><td>${time}</td><td><strong>${d.player_name}</strong></td><td><span class="badge ${actionClass}">${d.action}</span></td><td>${d.block_type.replace('minecraft:', '')}</td><td style="color:var(--text-muted)">${loc}</td></tr>`;
+                        tbody.innerHTML += `<tr><td>${time}</td><td><strong>${d.player_name}</strong></td><td><span class="badge ${actionClass}">${d.action}</span></td><td>${(d.block_type || '').replace('minecraft:', '')}</td><td style="color:var(--text-muted)">${loc}</td></tr>`;
                     });
                 });
             } else if (activeTab === 'view-damage') {
@@ -345,13 +382,49 @@
                     data.forEach(d => {
                         const time = new Date(d.timestamp).toLocaleTimeString();
                         const loc = `${d.world} (${d.x}, ${d.y}, ${d.z})`;
-                        tbody.innerHTML += `<tr><td>${time}</td><td>${d.block_type.replace('minecraft:', '')}</td><td><span class="badge">${d.old_current}</span></td><td><span class="badge place">${d.new_current}</span></td><td style="color:var(--text-muted)">${loc}</td></tr>`;
+                        tbody.innerHTML += `<tr><td>${time}</td><td>${(d.block_type || '').replace('minecraft:', '')}</td><td><span class="badge">${d.old_current}</span></td><td><span class="badge place">${d.new_current}</span></td><td style="color:var(--text-muted)">${loc}</td></tr>`;
+                    });
+                });
+            } else if (activeTab === 'view-items') {
+                apiGet('/api/events/items').then(data => {
+                    const tbody = document.getElementById('items-tbody');
+                    tbody.innerHTML = '';
+                    if(data.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted);">No item events recorded</td></tr>'; return; }
+                    data.forEach(d => {
+                        const time = new Date(d.timestamp).toLocaleTimeString();
+                        const loc = `${d.world} (${Math.round(d.x)}, ${Math.round(d.y)}, ${Math.round(d.z)})`;
+                        const actionBadge = d.action === 'HOPPER_TRANSFER' ? '<span class="badge">HOPPER</span>' : (d.action === 'DROP' ? '<span class="badge break">DROP</span>' : `<span class="badge place">${d.action}</span>`);
+                        tbody.innerHTML += `<tr><td>${time}</td><td><strong>${d.player_name}</strong></td><td>${actionBadge}</td><td>${(d.item_type || '').replace('minecraft:', '')}</td><td>x${d.amount}</td><td style="color:var(--text-muted)">${loc}</td></tr>`;
+                    });
+                });
+            } else if (activeTab === 'view-chat') {
+                apiGet('/api/events/chat').then(data => {
+                    const tbody = document.getElementById('chat-tbody');
+                    tbody.innerHTML = '';
+                    if(data.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">No chat or commands</td></tr>'; return; }
+                    data.forEach(d => {
+                        const time = new Date(d.timestamp).toLocaleTimeString();
+                        const loc = `${d.world} (${Math.round(d.x)}, ${Math.round(d.y)}, ${Math.round(d.z)})`;
+                        const typeBadge = d.is_command ? '<span class="badge death">COMMAND</span>' : '<span class="badge place">CHAT</span>';
+                        tbody.innerHTML += `<tr><td>${time}</td><td><strong>${d.player_name}</strong></td><td>${typeBadge}</td><td style="color:#d4d4d8">${d.message}</td><td style="color:var(--text-muted)">${loc}</td></tr>`;
+                    });
+                });
+            } else if (activeTab === 'view-sessions') {
+                apiGet('/api/events/sessions').then(data => {
+                    const tbody = document.getElementById('sessions-tbody');
+                    tbody.innerHTML = '';
+                    if(data.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--text-muted);">No sessions recorded</td></tr>'; return; }
+                    data.forEach(d => {
+                        const time = new Date(d.timestamp).toLocaleTimeString();
+                        const actionBadge = d.action === 'JOIN' ? '<span class="badge place">JOINED</span>' : '<span class="badge break">LEFT</span>';
+                        tbody.innerHTML += `<tr><td>${time}</td><td><strong>${d.player_name}</strong></td><td>${actionBadge}</td><td style="color:var(--text-muted)">${d.ip_address}</td></tr>`;
                     });
                 });
             }
         }
 
         // --- Charts Setup ---
+        let movementChart;
         Chart.defaults.color = '#71717a';
         Chart.defaults.font.family = "'Inter', sans-serif";
         const chartOptions = {
@@ -378,6 +451,48 @@
                     options: chartOptions
                 });
             } else { ramChart.data.labels = labels; ramChart.data.datasets[0].data = ramData; ramChart.update(); }
+        }
+
+        function updateMovementChart(data) {
+            if (!data || data.length === 0) return;
+            // Group by player
+            const players = {};
+            data.forEach(d => {
+                if (!players[d.player_name]) players[d.player_name] = [];
+                players[d.player_name].push({ x: d.x, y: d.z }); // Map X and Z to X and Y on chart
+            });
+
+            const datasets = Object.keys(players).map((playerName, index) => {
+                const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+                return {
+                    label: playerName,
+                    data: players[playerName],
+                    borderColor: colors[index % colors.length],
+                    backgroundColor: colors[index % colors.length],
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    showLine: true,
+                    tension: 0.1
+                };
+            });
+
+            if (!movementChart) {
+                movementChart = new Chart(document.getElementById('movementChart'), {
+                    type: 'scatter',
+                    data: { datasets },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: true, position: 'top', labels: { color: '#ededed' } }, tooltip: { backgroundColor: '#18181b', titleColor: '#ededed', bodyColor: '#a1a1aa', borderColor: '#262626', borderWidth: 1 } },
+                        scales: { 
+                            x: { grid: { color: '#171717' }, title: { display: true, text: 'East / West (X)' } }, 
+                            y: { grid: { color: '#171717' }, title: { display: true, text: 'North / South (Z)' } } 
+                        }
+                    }
+                });
+            } else {
+                movementChart.data.datasets = datasets;
+                movementChart.update();
+            }
         }
     </script>
 </body>

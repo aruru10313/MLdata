@@ -56,6 +56,10 @@ public class WebServerManager {
             server.createContext("/api/events/interactions", exchange -> handleEventsApi(exchange, "interaction_events"));
             server.createContext("/api/events/damage", exchange -> handleEventsApi(exchange, "damage_events"));
             server.createContext("/api/events/redstone", exchange -> handleEventsApi(exchange, "redstone_events"));
+            server.createContext("/api/events/items", exchange -> handleEventsApi(exchange, "item_events"));
+            server.createContext("/api/events/chat", exchange -> handleEventsApi(exchange, "chat_events"));
+            server.createContext("/api/events/sessions", exchange -> handleEventsApi(exchange, "session_events"));
+            server.createContext("/api/events/movement", exchange -> handleEventsApi(exchange, "player_movement"));
             
             server.setExecutor(Executors.newFixedThreadPool(4));
             server.start();
@@ -193,6 +197,10 @@ public class WebServerManager {
                     if (rsDam.next()) stats.addProperty("total_damage_events", rsDam.getInt("c"));
                     ResultSet rsRed = stmt.executeQuery("SELECT COUNT(*) as c FROM redstone_events");
                     if (rsRed.next()) stats.addProperty("total_redstone", rsRed.getInt("c"));
+                    ResultSet rsItems = stmt.executeQuery("SELECT COUNT(*) as c FROM item_events");
+                    if (rsItems.next()) stats.addProperty("total_items", rsItems.getInt("c"));
+                    ResultSet rsChat = stmt.executeQuery("SELECT COUNT(*) as c FROM chat_events");
+                    if (rsChat.next()) stats.addProperty("total_chat", rsChat.getInt("c"));
                 }
             } else {
                 stats.addProperty("total_blocks", fetchCountFromSupabase("block_events"));
@@ -201,6 +209,8 @@ public class WebServerManager {
                 stats.addProperty("total_interactions", fetchCountFromSupabase("interaction_events"));
                 stats.addProperty("total_damage_events", fetchCountFromSupabase("damage_events"));
                 stats.addProperty("total_redstone", fetchCountFromSupabase("redstone_events"));
+                stats.addProperty("total_items", fetchCountFromSupabase("item_events"));
+                stats.addProperty("total_chat", fetchCountFromSupabase("chat_events"));
             }
             byte[] bytes = gson.toJson(stats).getBytes(StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(200, bytes.length);

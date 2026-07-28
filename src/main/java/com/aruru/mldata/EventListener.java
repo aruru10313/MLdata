@@ -10,8 +10,17 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryMoveItemEvent;
+import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.entity.Entity;
 
 import java.util.HashMap;
@@ -160,5 +169,131 @@ public class EventListener implements Listener {
         data.put("timestamp", System.currentTimeMillis());
         
         dataCollector.logDamage(data);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerDropItem(PlayerDropItemEvent event) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("action", "DROP");
+        data.put("player_name", event.getPlayer().getName());
+        data.put("item_type", event.getItemDrop().getItemStack().getType().name());
+        data.put("amount", event.getItemDrop().getItemStack().getAmount());
+        data.put("world", event.getPlayer().getWorld().getName());
+        data.put("x", event.getPlayer().getLocation().getX());
+        data.put("y", event.getPlayer().getLocation().getY());
+        data.put("z", event.getPlayer().getLocation().getZ());
+        data.put("timestamp", System.currentTimeMillis());
+        dataCollector.logItem(data);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onEntityPickupItem(EntityPickupItemEvent event) {
+        if (!(event.getEntity() instanceof Player)) return;
+        Player player = (Player) event.getEntity();
+        
+        Map<String, Object> data = new HashMap<>();
+        data.put("action", "PICKUP");
+        data.put("player_name", player.getName());
+        data.put("item_type", event.getItem().getItemStack().getType().name());
+        data.put("amount", event.getItem().getItemStack().getAmount());
+        data.put("world", player.getWorld().getName());
+        data.put("x", player.getLocation().getX());
+        data.put("y", player.getLocation().getY());
+        data.put("z", player.getLocation().getZ());
+        data.put("timestamp", System.currentTimeMillis());
+        dataCollector.logItem(data);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player)) return;
+        if (event.getClickedInventory() == null) return;
+        if (event.getCurrentItem() == null || event.getCurrentItem().getType().isAir()) return;
+        
+        // Only care about interacting with non-player inventories (chests, barrels, etc)
+        if (event.getClickedInventory().getType() == InventoryType.PLAYER) {
+            // Check if they are shift-clicking from their inventory INTO a chest
+            if (event.getInventory().getType() == InventoryType.PLAYER) return; // Just moving in own inventory
+        }
+        
+        Player player = (Player) event.getWhoClicked();
+        String action = "CHEST_INTERACT"; // Generic interaction
+        
+        Map<String, Object> data = new HashMap<>();
+        data.put("action", action);
+        data.put("player_name", player.getName());
+        data.put("item_type", event.getCurrentItem().getType().name());
+        data.put("amount", event.getCurrentItem().getAmount());
+        data.put("world", player.getWorld().getName());
+        data.put("x", player.getLocation().getX());
+        data.put("y", player.getLocation().getY());
+        data.put("z", player.getLocation().getZ());
+        data.put("timestamp", System.currentTimeMillis());
+        dataCollector.logItem(data);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onInventoryMoveItem(InventoryMoveItemEvent event) {
+        // This fires when a hopper moves an item.
+        if (event.getInitiator().getType() == InventoryType.HOPPER) {
+            org.bukkit.Location loc = event.getInitiator().getLocation();
+            if (loc != null) {
+                dataCollector.logHopperTransfer(
+                    loc.getWorld().getName(), 
+                    loc.getBlockX(), 
+                    loc.getBlockY(), 
+                    loc.getBlockZ(), 
+                    event.getItem().getType().name()
+                );
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerChat(AsyncPlayerChatEvent event) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("player_name", event.getPlayer().getName());
+        data.put("is_command", 0);
+        data.put("message", event.getMessage());
+        data.put("world", event.getPlayer().getWorld().getName());
+        data.put("x", event.getPlayer().getLocation().getX());
+        data.put("y", event.getPlayer().getLocation().getY());
+        data.put("z", event.getPlayer().getLocation().getZ());
+        data.put("timestamp", System.currentTimeMillis());
+        dataCollector.logChat(data);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("player_name", event.getPlayer().getName());
+        data.put("is_command", 1);
+        data.put("message", event.getMessage());
+        data.put("world", event.getPlayer().getWorld().getName());
+        data.put("x", event.getPlayer().getLocation().getX());
+        data.put("y", event.getPlayer().getLocation().getY());
+        data.put("z", event.getPlayer().getLocation().getZ());
+        data.put("timestamp", System.currentTimeMillis());
+        dataCollector.logChat(data);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("player_name", event.getPlayer().getName());
+        data.put("action", "JOIN");
+        data.put("ip_address", event.getPlayer().getAddress().getAddress().getHostAddress());
+        data.put("timestamp", System.currentTimeMillis());
+        dataCollector.logSession(data);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("player_name", event.getPlayer().getName());
+        data.put("action", "QUIT");
+        data.put("ip_address", event.getPlayer().getAddress().getAddress().getHostAddress());
+        data.put("timestamp", System.currentTimeMillis());
+        dataCollector.logSession(data);
     }
 }

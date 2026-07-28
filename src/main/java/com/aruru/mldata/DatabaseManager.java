@@ -60,6 +60,9 @@ public class DatabaseManager {
             stmt.execute("CREATE TABLE IF NOT EXISTS redstone_events (id INTEGER PRIMARY KEY AUTOINCREMENT, block_type TEXT, world TEXT, x INTEGER, y INTEGER, z INTEGER, old_current INTEGER, new_current INTEGER, timestamp BIGINT)");
             stmt.execute("CREATE TABLE IF NOT EXISTS interaction_events (id INTEGER PRIMARY KEY AUTOINCREMENT, player_name TEXT, target_type TEXT, target_name TEXT, action TEXT, world TEXT, x REAL, y REAL, z REAL, timestamp BIGINT)");
             stmt.execute("CREATE TABLE IF NOT EXISTS damage_events (id INTEGER PRIMARY KEY AUTOINCREMENT, attacker_name TEXT, victim_name TEXT, damage REAL, cause TEXT, world TEXT, x REAL, y REAL, z REAL, timestamp BIGINT)");
+            stmt.execute("CREATE TABLE IF NOT EXISTS item_events (id INTEGER PRIMARY KEY AUTOINCREMENT, action TEXT, player_name TEXT, item_type TEXT, amount INTEGER, world TEXT, x REAL, y REAL, z REAL, timestamp BIGINT)");
+            stmt.execute("CREATE TABLE IF NOT EXISTS chat_events (id INTEGER PRIMARY KEY AUTOINCREMENT, player_name TEXT, is_command INTEGER, message TEXT, world TEXT, x REAL, y REAL, z REAL, timestamp BIGINT)");
+            stmt.execute("CREATE TABLE IF NOT EXISTS session_events (id INTEGER PRIMARY KEY AUTOINCREMENT, player_name TEXT, action TEXT, ip_address TEXT, timestamp BIGINT)");
             logger.info("SQLite Database initialized successfully.");
         } catch (SQLException e) {
             logger.severe("Could not initialize database tables: " + e.getMessage());
