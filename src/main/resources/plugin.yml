@@ -1,0 +1,11 @@
+name: MLDataCollector
+version: '${version}'
+main: com.aruru.mldata.MLDataCollectorPlugin
+api-version: '1.21'
+authors: [Aruru]
+description: Optimised machine learning data collector with built-in dashboard.
+commands:
+  mldata:
+    description: MLDataCollector 관리 명령어
+    permission: mldata.admin
+    usage: /mldata

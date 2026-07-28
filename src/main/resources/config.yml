@@ -1,0 +1,23 @@
+# Database Storage Settings (Hybrid Mode)
+database:
+  # type can be 'sqlite' (local file) or 'supabase' (cloud database)
+  type: "sqlite"
+  
+  # Only required if type is 'supabase'
+  supabase-url: "YOUR_SUPABASE_URL_HERE"
+  supabase-key: "YOUR_SUPABASE_ANON_KEY_HERE"
+
+# Internal Web Dashboard Settings
+web:
+  # The port where the dashboard will be hosted (e.g. http://server-ip:8080)
+  port: 8080
+  # The password required to login to the custom premium dashboard
+  password: "10313"
+
+# Data Collection Settings
+collection:
+  # How often to write batch data to the database (in seconds)
+  batch-interval-seconds: 60
+  
+  # Minimum time between movement records per player (in milliseconds)
+  movement-throttle-ms: 2000
