@@ -114,6 +114,15 @@ CREATE TABLE IF NOT EXISTS damage_events (
   z REAL,
   timestamp BIGINT
 );
+
+-- Supabase에서 기본적으로 보안(RLS)을 걸어두어 플러그인이 데이터를 넣지 못하는 에러를 방지하기 위해 RLS를 해제합니다.
+ALTER TABLE server_metrics DISABLE ROW LEVEL SECURITY;
+ALTER TABLE player_movement DISABLE ROW LEVEL SECURITY;
+ALTER TABLE block_events DISABLE ROW LEVEL SECURITY;
+ALTER TABLE death_events DISABLE ROW LEVEL SECURITY;
+ALTER TABLE redstone_events DISABLE ROW LEVEL SECURITY;
+ALTER TABLE interaction_events DISABLE ROW LEVEL SECURITY;
+ALTER TABLE damage_events DISABLE ROW LEVEL SECURITY;
 ```
 
 ## 🛠️ 플러그인 빌드 방법
