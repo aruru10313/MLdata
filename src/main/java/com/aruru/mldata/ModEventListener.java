@@ -4,6 +4,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.ServerChatEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.minecraft.world.level.Level;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,7 +21,6 @@ public class ModEventListener {
 
     @SubscribeEvent
     public void onPlayerTick(PlayerTickEvent.Post event) {
-        // Sample player location every few seconds on tick post event
         net.minecraft.world.entity.player.Player player = event.getEntity();
         if (player.level().isClientSide()) return;
 
@@ -28,7 +28,6 @@ public class ModEventListener {
         UUID uuid = player.getUUID();
         long lastTime = lastMovementTimes.getOrDefault(uuid, 0L);
 
-        // Throttle to every 2000ms (2 seconds)
         if (now - lastTime >= 2000) {
             lastMovementTimes.put(uuid, now);
 
@@ -54,11 +53,13 @@ public class ModEventListener {
         if (event.getLevel().isClientSide()) return;
         if (event.getPlayer() == null) return;
 
+        String worldName = event.getLevel() instanceof Level lvl ? lvl.dimension().location().toString() : "unknown";
+
         Map<String, Object> data = new HashMap<>();
         data.put("action", "BREAK");
         data.put("player_name", event.getPlayer().getName().getString());
         data.put("block_type", event.getState().getBlock().getDescriptionId());
-        data.put("world", event.getLevel().dimension().location().toString());
+        data.put("world", worldName);
         data.put("x", event.getPos().getX());
         data.put("y", event.getPos().getY());
         data.put("z", event.getPos().getZ());
@@ -74,11 +75,13 @@ public class ModEventListener {
         if (event.getLevel().isClientSide()) return;
         if (!(event.getEntity() instanceof net.minecraft.world.entity.player.Player player)) return;
 
+        String worldName = event.getLevel() instanceof Level lvl ? lvl.dimension().location().toString() : "unknown";
+
         Map<String, Object> data = new HashMap<>();
         data.put("action", "PLACE");
         data.put("player_name", player.getName().getString());
         data.put("block_type", event.getState().getBlock().getDescriptionId());
-        data.put("world", event.getLevel().dimension().location().toString());
+        data.put("world", worldName);
         data.put("x", event.getPos().getX());
         data.put("y", event.getPos().getY());
         data.put("z", event.getPos().getZ());
@@ -91,10 +94,11 @@ public class ModEventListener {
 
     @SubscribeEvent
     public void onServerChat(ServerChatEvent event) {
+        String message = event.getMessage().getString();
         Map<String, Object> data = new HashMap<>();
         data.put("player_name", event.getPlayer().getName().getString());
-        data.put("is_command", event.getMessage().startsWith("/") ? 1 : 0);
-        data.put("message", event.getMessage());
+        data.put("is_command", message.startsWith("/") ? 1 : 0);
+        data.put("message", message);
         data.put("world", event.getPlayer().level().dimension().location().toString());
         data.put("timestamp", System.currentTimeMillis());
 

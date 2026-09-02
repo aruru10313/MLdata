@@ -7,6 +7,7 @@ import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.logging.Logger;
 
 public class EmbeddedWebServer {
@@ -42,9 +43,10 @@ public class EmbeddedWebServer {
         public void handle(HttpExchange exchange) throws IOException {
             String response = "{\"status\": \"running\", \"mod\": \"MLDataCollector\", \"version\": \"1.0-SNAPSHOT\"}";
             exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
-            exchange.sendResponseHeaders(200, response.getBytes().UTF_8.length);
+            byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, bytes.length);
             try (OutputStream os = exchange.getResponseBody()) {
-                os.write(response.getBytes().UTF_8);
+                os.write(bytes);
             }
         }
     }
