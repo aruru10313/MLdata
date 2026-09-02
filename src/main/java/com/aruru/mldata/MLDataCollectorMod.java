@@ -30,9 +30,38 @@ public class MLDataCollectorMod {
     private void onServerStarting(final ServerStartingEvent event) {
         LOGGER.info("[MLDataCollector] Server starting. Initializing MySQL and WebServer...");
 
-        // Initialize MySQL (Default local or configurable parameters)
+        // Security Patch: Read from properties file instead of hardcoded
+        String host = "127.0.0.1";
+        int port = 3306;
+        String db = "mldata";
+        String user = "root";
+        String pass = "password"; // Default fallback
+        
+        java.io.File configFile = new java.io.File("config/mldata.properties");
+        try {
+            if (!configFile.exists()) {
+                configFile.getParentFile().mkdirs();
+                try (java.io.FileWriter writer = new java.io.FileWriter(configFile)) {
+                    writer.write("db.host=127.0.0.1\ndb.port=3306\ndb.name=mldata\ndb.user=root\ndb.password=password\n");
+                }
+            } else {
+                java.util.Properties props = new java.util.Properties();
+                try (java.io.FileInputStream fis = new java.io.FileInputStream(configFile)) {
+                    props.load(fis);
+                    host = props.getProperty("db.host", "127.0.0.1");
+                    port = Integer.parseInt(props.getProperty("db.port", "3306"));
+                    db = props.getProperty("db.name", "mldata");
+                    user = props.getProperty("db.user", "root");
+                    pass = props.getProperty("db.password", "password");
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.warning("[MLDataCollector] Failed to read config, using defaults.");
+        }
+
+        // Initialize MySQL
         mySQLManager = new MySQLManager();
-        mySQLManager.init("localhost", 3306, "mldata", "root", "password");
+        mySQLManager.init(host, port, db, user, pass);
 
         // Initialize Embedded Web Server on port 8974
         webServer = new EmbeddedWebServer(8974);
