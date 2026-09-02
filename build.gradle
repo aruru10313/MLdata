@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'net.neoforged.moddev' version '2.0.70'
+    id 'net.neoforged.moddev' version '1.0.11'
 }
 
 group = 'com.aruru.mldata'
