@@ -35,8 +35,8 @@ public class MLDataCollectorMod {
         mySQLManager = new MySQLManager();
         mySQLManager.init("localhost", 3306, "mldata", "root", "password");
 
-        // Initialize Embedded Web Server on port 8974
-        webServer = new EmbeddedWebServer(8974);
+        // Initialize Embedded Web Server on port 8974 (with DB access for /api/* endpoints)
+        webServer = new EmbeddedWebServer(8974, mySQLManager);
         webServer.start();
 
         // Register Event Listener for data collection
