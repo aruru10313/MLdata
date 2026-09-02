@@ -1,62 +1,47 @@
 plugins {
     id 'java'
+    id 'net.neoforged.moddev' version '1.0.11'
 }
 
 group = 'com.aruru.mldata'
 version = '1.0-SNAPSHOT'
 
-repositories {
-    mavenCentral()
-    maven {
-        name = "papermc-repo"
-        url = "https://repo.papermc.io/repository/maven-public/"
+neoForge {
+    version = "21.1.75"
+    runs {
+        client { client() }
+        server { server() }
+    }
+    mods {
+        mldatacollector {
+            sourceSet sourceSets.main
+        }
     }
 }
 
 dependencies {
-    // Paper API
-    compileOnly("io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT")
-    
+    // MySQL Connector & HikariCP Connection Pool bundled via jarJar
+    jarJar(implementation('com.mysql:mysql-connector-j:8.4.0')) {
+        version {
+            strictly '[8.0, 9.0)'
+            prefer '8.4.0'
+        }
+    }
+    jarJar(implementation('com.zaxxer:HikariCP:5.1.0')) {
+        version {
+            strictly '[5.0, 6.0)'
+            prefer '5.1.0'
+        }
+    }
+
     // JSON parsing
-    implementation("com.google.code.gson:gson:2.11.0")
-    
-    // SQLite JDBC Driver
-    implementation("org.xerial:sqlite-jdbc:3.46.0.0")
+    implementation 'com.google.code.gson:gson:2.10.1'
 }
 
-def targetJavaVersion = 21
 java {
-    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
-    sourceCompatibility = javaVersion
-    targetCompatibility = javaVersion
-    if (JavaVersion.current() < javaVersion) {
-        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
-    }
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-}
-
-processResources {
-    def props = [version: version]
-    inputs.properties props
-    filteringCharset 'UTF-8'
-    filesMatching('plugin.yml') {
-        expand props
-    }
-}
-
-tasks.register('fatJar', Jar) {
-    archiveClassifier.set('')
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from sourceSets.main.output
-    dependsOn configurations.runtimeClasspath
-    from {
-        configurations.runtimeClasspath.findAll { it.name.endsWith('jar') }.collect { zipTree(it) }
-    }
-}
-
-tasks.build {
-    dependsOn fatJar
 }
