@@ -8,10 +8,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.util.logging.Logger;
+import com.mojang.logging.LogUtils;
+import org.slf4j.Logger;
 
 public class EmbeddedWebServer {
-    private static final Logger LOGGER = Logger.getLogger("MLDataCollector");
+    private static final Logger LOGGER = LogUtils.getLogger();
     private HttpServer server;
     private final int port;
 
@@ -29,7 +30,7 @@ public class EmbeddedWebServer {
             server.start();
             LOGGER.info("[MLDataCollector] Embedded web server started on port " + port);
         } catch (IOException e) {
-            LOGGER.severe("[MLDataCollector] Failed to start embedded web server on port " + port + ": " + e.getMessage());
+            LOGGER.error("[MLDataCollector] Failed to start embedded web server on port {}: {}", port, e.getMessage(), e);
         }
     }
 

@@ -7,11 +7,12 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 
-import java.util.logging.Logger;
+import com.mojang.logging.LogUtils;
+import org.slf4j.Logger;
 
 @Mod("mldatacollector")
 public class MLDataCollectorMod {
-    private static final Logger LOGGER = Logger.getLogger("MLDataCollector");
+    private static final Logger LOGGER = LogUtils.getLogger();
     private static MySQLManager mySQLManager;
     private static EmbeddedWebServer webServer;
 

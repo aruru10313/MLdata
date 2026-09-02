@@ -7,10 +7,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Map;
-import java.util.logging.Logger;
+import com.mojang.logging.LogUtils;
+import org.slf4j.Logger;
 
 public class MySQLManager {
-    private static final Logger LOGGER = Logger.getLogger("MLDataCollector");
+    private static final Logger LOGGER = LogUtils.getLogger();
     private HikariDataSource dataSource;
 
     public void init(String host, int port, String database, String username, String password) {
@@ -30,7 +31,7 @@ public class MySQLManager {
             createTables();
             LOGGER.info("[MLDataCollector] MySQL connection established successfully.");
         } catch (Exception e) {
-            LOGGER.severe("[MLDataCollector] Failed to connect to MySQL: " + e.getMessage());
+            LOGGER.error("[MLDataCollector] Failed to connect to MySQL: {}", e.getMessage(), e);
         }
     }
 
@@ -72,7 +73,7 @@ public class MySQLManager {
                 }
             }
         } catch (SQLException e) {
-            LOGGER.severe("[MLDataCollector] Failed to create tables: " + e.getMessage());
+            LOGGER.error("[MLDataCollector] Failed to create tables: {}", e.getMessage(), e);
         }
     }
 
@@ -111,7 +112,7 @@ public class MySQLManager {
                 }
                 stmt.executeUpdate();
             } catch (SQLException e) {
-                LOGGER.warning("[MLDataCollector] Async SQL execute failed: " + e.getMessage());
+                LOGGER.warn("[MLDataCollector] Async SQL execute failed: {}", e.getMessage(), e);
             }
         }).start();
     }
