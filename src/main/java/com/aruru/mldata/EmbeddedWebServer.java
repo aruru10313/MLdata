@@ -53,7 +53,7 @@ public class EmbeddedWebServer {
         }
     }
 
-    static class RootHandler implements HttpHandler {
+    class RootHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             String path = exchange.getRequestURI().getPath();
@@ -73,7 +73,7 @@ public class EmbeddedWebServer {
                     + "<p>Status: running (NeoForge 1.21.1, MySQL)</p>"
                     + "<ul><li><a href=\"/status\">/status</a> - JSON status</li>"
                     + "<li><a href=\"/api/status\">/api/status</a> - alias</li></ul>"
-                    + "<p>Port: 8974</p></body></html>";
+                    + "<p>Port: " + port + "</p></body></html>";
             exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
             byte[] bytes = html.getBytes(StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(200, bytes.length);

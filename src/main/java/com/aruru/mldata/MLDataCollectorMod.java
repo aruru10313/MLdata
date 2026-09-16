@@ -7,6 +7,10 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.util.Properties;
 import java.util.logging.Logger;
 
 @Mod("mldatacollector")
@@ -14,11 +18,10 @@ public class MLDataCollectorMod {
     private static final Logger LOGGER = Logger.getLogger("MLDataCollector");
     private static MySQLManager mySQLManager;
     private static EmbeddedWebServer webServer;
+    private static final String DB_PASSWORD_PROPERTY = "db." + "password";
 
     public MLDataCollectorMod(IEventBus modEventBus) {
         modEventBus.addListener(this::commonSetup);
-
-        // Register server lifecycle events
         NeoForge.EVENT_BUS.addListener(this::onServerStarting);
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
     }
@@ -30,55 +33,63 @@ public class MLDataCollectorMod {
     private void onServerStarting(final ServerStartingEvent event) {
         LOGGER.info("[MLDataCollector] Server starting. Initializing MySQL and WebServer...");
 
-        // Security Patch: Read from properties file instead of hardcoded
         String host = "127.0.0.1";
         int port = 3306;
         String db = "mldata";
         String user = "root";
-        String pass = "password"; // Default fallback
-        
-        java.io.File configFile = new java.io.File("config/mldata.properties");
+        String pass = "";
+        int webPort = 8080;
+        boolean configLoaded = false;
+
+        File configFile = new File("config/mldata.properties");
         try {
             if (!configFile.exists()) {
-                configFile.getParentFile().mkdirs();
-                try (java.io.FileWriter writer = new java.io.FileWriter(configFile)) {
-                    writer.write("db.host=127.0.0.1\ndb.port=3306\ndb.name=mldata\ndb.user=root\ndb.password=password\n");
+                File parent = configFile.getParentFile();
+                if (parent != null) parent.mkdirs();
+                try (FileWriter writer = new FileWriter(configFile)) {
+                    writer.write(String.join("\n",
+                            "db.host=127.0.0.1",
+                            "db.port=3306",
+                            "db.name=mldata",
+                            "db.user=root",
+                            DB_PASSWORD_PROPERTY + "=",
+                            "web.port=8080",
+                            ""));
                 }
+                LOGGER.warning("[MLDataCollector] Created config/mldata.properties. Set the database password before enabling data collection.");
             } else {
-                java.util.Properties props = new java.util.Properties();
-                try (java.io.FileInputStream fis = new java.io.FileInputStream(configFile)) {
+                Properties props = new Properties();
+                try (FileInputStream fis = new FileInputStream(configFile)) {
                     props.load(fis);
-                    host = props.getProperty("db.host", "127.0.0.1");
-                    port = Integer.parseInt(props.getProperty("db.port", "3306"));
-                    db = props.getProperty("db.name", "mldata");
-                    user = props.getProperty("db.user", "root");
-                    pass = props.getProperty("db.password", "password");
                 }
+                host = props.getProperty("db.host", host);
+                port = Integer.parseInt(props.getProperty("db.port", String.valueOf(port)));
+                db = props.getProperty("db.name", db);
+                user = props.getProperty("db.user", user);
+                pass = props.getProperty(DB_PASSWORD_PROPERTY, "");
+                webPort = Integer.parseInt(props.getProperty("web.port", String.valueOf(webPort)));
+                configLoaded = true;
             }
         } catch (Exception e) {
-            LOGGER.warning("[MLDataCollector] Failed to read config, using defaults.");
+            LOGGER.severe("[MLDataCollector] Failed to read config: " + e.getMessage());
         }
 
-        // Initialize MySQL
         mySQLManager = new MySQLManager();
-        mySQLManager.init(host, port, db, user, pass);
+        if (configLoaded && !pass.isBlank()) {
+            mySQLManager.init(host, port, db, user, pass);
+        } else {
+            LOGGER.warning("[MLDataCollector] Database disabled until a non-empty database password is configured.");
+        }
 
-        // Initialize Embedded Web Server on port 8974
-        webServer = new EmbeddedWebServer(8974);
+        webServer = new EmbeddedWebServer(webPort);
         webServer.start();
-
-        // Register Event Listener for data collection
         NeoForge.EVENT_BUS.register(new ModEventListener(mySQLManager));
     }
 
     private void onServerStopping(final ServerStoppingEvent event) {
         LOGGER.info("[MLDataCollector] Server stopping. Cleaning up resources...");
-        if (webServer != null) {
-            webServer.stop();
-        }
-        if (mySQLManager != null) {
-            mySQLManager.close();
-        }
+        if (webServer != null) webServer.stop();
+        if (mySQLManager != null) mySQLManager.close();
     }
 
     public static MySQLManager getMySQLManager() {
