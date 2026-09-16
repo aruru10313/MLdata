@@ -1,11 +1,12 @@
 # Database Storage Settings (Hybrid Mode)
 database:
-  # type can be 'sqlite' (local file) or 'supabase' (cloud database)
-  type: "sqlite"
+  # The current server implementation uses the MySQL-compatible collector.
+  # Keep credentials in config/mldata.properties, never in source control.
+  type: "mysql"
   
-  # Only required if type is 'supabase'
-  supabase-url: "YOUR_SUPABASE_URL_HERE"
-  supabase-key: "YOUR_SUPABASE_ANON_KEY_HERE"
+  # Reserved for the cloud collector implementation.
+  supabase-url: ""
+  supabase-key: ""
 
 
 # Data Collection Settings
@@ -14,4 +15,7 @@ collection:
   batch-interval-seconds: 60
   
   # Minimum time between movement records per player (in milliseconds)
-  movement-throttle-ms: 2000
+  movement-throttle-ms: 3000
+
+web:
+  port: 8080
